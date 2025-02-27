@@ -1,14 +1,39 @@
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Dict, Any, Optional, AsyncGenerator, List
 import json
-import aiohttp
+from openai import OpenAI, AsyncOpenAI
 from src.models.base import BaseModel
 
 class OpenAIModel(BaseModel):
-    """BaseModel 接口的 OpenAI 兼容 API 实现。
+    """OpenAI API 的模型实现类。
     
-    此类提供了与 OpenAI 兼容的 API 交互方法，用于文本生成。
-    它支持使用聊天补全端点进行普通生成和流式生成两种方法。
+    该类实现了 BaseModel 接口，提供与 OpenAI 兼容的 API 交互功能。支持同步和流式
+    两种方式生成文本，并维护多轮对话上下文。使用官方 SDK 进行 API 调用，确保了
+    接口调用的可靠性和兼容性。
+    
+    Attributes:
+        client (AsyncOpenAI): OpenAI 异步客户端实例，用于进行 API 调用。
     """
+    
+    def __init__(
+        self,
+        model_name: str,
+        api_base: str,
+        api_key: Optional[str] = None,
+        **kwargs: Dict[str, Any]
+    ) -> None:
+        """初始化 OpenAI 模型实例。
+        
+        Args:
+            model_name: 要使用的模型名称，如 'gpt-4'。
+            api_base: API 服务的基础 URL。
+            api_key: OpenAI API 密钥，用于认证。
+            **kwargs: 额外的模型配置参数。
+        """
+        super().__init__(model_name, api_base, api_key, **kwargs)
+        self.client = AsyncOpenAI(
+            api_key=self.api_key,
+            base_url=self.api_base
+        )
     
     async def generate(
         self,
@@ -16,41 +41,33 @@ class OpenAIModel(BaseModel):
         system: Optional[str] = None,
         **kwargs: Dict[str, Any]
     ) -> str:
-        """使用 OpenAI 兼容的 API 生成完整响应。
+        """生成单轮回复。
         
-        Args：
-            prompt (str): 用户的输入提示
-            system (Optional[str]): 用于指导模型行为的系统消息
-            **kwargs: 额外的生成参数
-            
-        Returns：
-            str: 模型生成的完整响应
+        使用 OpenAI API 生成对给定提示的回复。支持通过 system 参数设置系统提示，
+        以指导模型的行为。
+        
+        Args:
+            prompt: 用户输入的提示文本。
+            system: 可选的系统提示，用于设置模型的行为规范。
+            **kwargs: 传递给 API 的额外参数。
+        
+        Returns:
+            模型生成的回复文本。
+        
+        Raises:
+            OpenAIError: 当 API 调用失败时抛出。
         """
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
         
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            payload = {
-                "model": self.model_name,
-                "messages": messages,
-                **kwargs
-            }
-            
-            async with session.post(
-                f"{self.api_base}/chat/completions",
-                headers=headers,
-                json=payload
-            ) as response:
-                response.raise_for_status()
-                result = await response.json()
-                return result["choices"][0]["message"]["content"]
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            **kwargs
+        )
+        return response.choices[0].message.content
     
     async def generate_stream(
         self,
@@ -58,56 +75,90 @@ class OpenAIModel(BaseModel):
         system: Optional[str] = None,
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
-        """使用 OpenAI 兼容的 API 生成流式响应。
+        """以流式方式生成回复。
         
-        此方法通过 OpenAI 兼容的 API 以流式方式生成文本响应。它会逐步返回生成的文本片段，
-        而不是等待整个响应完成。这对于需要实时显示生成内容的场景特别有用。
+        使用 OpenAI API 流式生成回复，逐步返回生成的文本片段。适用于需要实时
+        显示生成内容的场景。
         
-        Args：
-            prompt (str): 用户的输入提示
-            system (Optional[str]): 用于指导模型行为的系统消息
-            **kwargs: 额外的生成参数
-            
-        Yields：
-            str: 模型生成的响应片段
+        Args:
+            prompt: 用户输入的提示文本。
+            system: 可选的系统提示，用于设置模型的行为规范。
+            **kwargs: 传递给 API 的额外参数。
+        
+        Yields:
+            生成的文本片段。每个片段都是完整回复的一部分。
+        
+        Raises:
+            OpenAIError: 当 API 调用失败时抛出。
         """
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
         
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        stream = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            stream=True,
+            **kwargs
+        )
         
-        async with aiohttp.ClientSession() as session:
-            payload = {
-                "model": self.model_name,
-                "messages": messages,
-                "stream": True,
-                **kwargs
-            }
-            
-            async with session.post(
-                f"{self.api_base}/chat/completions",
-                headers=headers,
-                json=payload
-            ) as response:
-                response.raise_for_status()
-                async for line in response.content:
-                    if line:
-                        line = line.decode("utf-8").strip()
-                        if line.startswith("data: "):
-                            line = line[6:]
-                            if line == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(line)
-                                # 修改这里的逻辑，不再依赖 finish_reason
-                                if "choices" in chunk and chunk["choices"] and "delta" in chunk["choices"][0]:
-                                    content = chunk["choices"][0]["delta"].get("content")
-                                    if content:
-                                        yield content
-                            except json.JSONDecodeError:
-                                continue
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+    
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs: Dict[str, Any]
+    ) -> str:
+        """进行多轮对话。"""
+        # 更新对话历史
+        self._conversation_history.extend(messages)
+        
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            **kwargs
+        )
+        
+        # 保存助手的回复到历史
+        assistant_message = {
+            "role": "assistant",
+            "content": response.choices[0].message.content
+        }
+        self._conversation_history.append(assistant_message)
+        
+        return response.choices[0].message.content
+    
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs: Dict[str, Any]
+    ) -> AsyncGenerator[str, None]:
+        """以流式方式进行多轮对话。"""
+        # 更新对话历史
+        self._conversation_history.extend(messages)
+        
+        # 用于收集完整响应
+        full_response = []
+        
+        stream = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            stream=True,
+            **kwargs
+        )
+        
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                full_response.append(content)
+                yield content
+        
+        # 保存完整回复到历史
+        assistant_message = {
+            "role": "assistant",
+            "content": "".join(full_response)
+        }
+        self._conversation_history.append(assistant_message)

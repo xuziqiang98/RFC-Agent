@@ -16,7 +16,7 @@ def model_instance():
     api_base = getattr(env, "OPENAI_API_BASE", "http://localhost:11434")
     api_key = getattr(env, "OPENAI_API_KEY", "")
     
-    breakpoint()
+    # breakpoint()
     
     return LLMFactory.create(
         model_type=model_type,

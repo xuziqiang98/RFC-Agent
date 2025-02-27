@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, AsyncGenerator
+from typing import Dict, Any, Optional, AsyncGenerator, List
+import copy
 
 class BaseModel(ABC):
     """所有语言模型的基类。
@@ -25,6 +26,7 @@ class BaseModel(ABC):
         self.api_base = api_base
         self.api_key = api_key
         self.kwargs = kwargs
+        self._conversation_history: List[Dict[str, str]] = []
     
     @abstractmethod
     async def generate(
@@ -44,7 +46,7 @@ class BaseModel(ABC):
             str: 模型生成的响应
         """
         pass
-    
+
     @abstractmethod
     async def generate_stream(
         self,
@@ -63,3 +65,54 @@ class BaseModel(ABC):
             str: 模型生成的响应片段
         """
         pass
+
+    @abstractmethod
+    async def chat(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs: Dict[str, Any]
+    ) -> str:
+        """进行多轮对话并生成响应。
+        
+        Args：
+            messages: 对话历史消息列表，每条消息包含 'role' 和 'content' 字段
+            **kwargs: 额外的生成参数
+            
+        Returns：
+            str: 模型生成的响应
+        """
+        pass
+
+    @abstractmethod
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs: Dict[str, Any]
+    ) -> AsyncGenerator[str, None]:
+        """进行多轮对话并生成流式响应。
+        
+        Args：
+            messages: 对话历史消息列表，每条消息包含 'role' 和 'content' 字段
+            **kwargs: 额外的生成参数
+            
+        Yields：
+            str: 模型生成的响应片段
+        """
+        pass    
+    
+    def clear_history(self) -> None:
+        """清除对话历史记录。
+        
+        此方法会清空当前实例的对话历史记录，使其回到初始状态。
+        这在需要开始新的对话时特别有用。
+        """
+        self._conversation_history.clear()
+    
+    def get_history(self) -> List[Dict[str, str]]:
+        """获取当前对话的历史记录。
+        
+        Returns:
+            对话历史消息列表，每条消息包含 'role' 和 'content' 字段。
+        """
+        
+        return copy.deepcopy(self._conversation_history)  # 使用深拷贝替代浅拷贝
