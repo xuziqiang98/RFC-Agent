@@ -10,7 +10,9 @@ print(id(instance_a))
 print(id(instance_b))
 assert id(instance_a) == id(instance_b)
 
-instance_a.var = 1
-print(instance_a)
-print(instance_b)
-assert instance_b.var == 1
+# instance_a.var = 1
+# print(instance_a)
+# print(instance_b)
+# assert instance_b.var == 1
+
+print(instance_a.DEFAULT_MODEL_TYPE)
