@@ -24,6 +24,13 @@ class PathConfig(ConfigBase):
     scripts = root / 'scripts'
     tests = root / 'tests'
     logs = data / 'logs'
+    impls = root / 'impls'
+    contexts = src / 'contexts'
+    prompts = src / 'prompts'
+    models = src / 'models'
+    parsers = src / 'parsers'
+    tools = src / 'tools'
+    rfcs = root / 'rfcs'
 
     def __post_init__(self) -> None:
         for path in vars(self).values():

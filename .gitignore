@@ -1,19 +1,24 @@
 # IDE configurations
-/.vscode/
-/.idea/
+.vscode/
+.idea/
 
 # cache
 __pycache__/
 .pytest_cache/
 
 # virtual environment
-/venv/
+venv/
 
 # space-intensive data
-/data/
-
-# general test file
-/tests/playground.py
+data/
+rfcs/
 
 # environment variables
 .env
+
+# macOS
+__MACOSX/
+.DS_Store
+
+# protocol implementations
+impls/
