@@ -4,6 +4,7 @@
 
 # cache
 __pycache__/
+.pytest_cache/
 
 # virtual environment
 /venv/
@@ -13,3 +14,6 @@ __pycache__/
 
 # general test file
 /tests/playground.py
+
+# environment variables
+.env
