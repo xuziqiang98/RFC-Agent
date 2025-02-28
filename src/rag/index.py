@@ -74,13 +74,40 @@ class FAISSIndexManager:
     
     def save_index(self, vector_store: FAISS, save_path: str) -> None:
         """
-        保存 FAISS 索引到指定路径。
+        将 FAISS 索引保存到指定路径。
         
         Args:
-            vector_store: 要保存的 FAISS 向量存储对象
+            vector_store: 要保存的 FAISS 索引对象
             save_path: 保存路径，应该是一个目录路径
         """
         vector_store.save_local(save_path)
+    
+    def check_document_exists(self, doc_name: str, index_path: str) -> bool:
+        """
+        检查指定文档是否已存在于本地索引中。
+        
+        Args:
+            index_path: 索引文件路径
+            doc_name: 文档名称，如果提供则同时检查文档名
+            
+        Returns:
+            bool: 如果文档存在返回True，否则返回False
+        """
+        try:
+            if not os.path.exists(index_path):
+                return False
+                
+            vector_store = self.load_index(index_path)
+            existing_docs = vector_store.docstore.search({})
+            
+            for doc in existing_docs:
+                if doc.metadata.get("source") == doc_name:
+                    return True
+            return False
+            
+        except Exception as e:
+            print(f"检查文档存在性时发生错误: {e}")
+            return False
 
     def load_index(self, load_path: str) -> FAISS:
         """

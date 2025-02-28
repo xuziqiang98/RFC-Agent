@@ -202,3 +202,5 @@ async def test_get_top_k_similar_without_scores(retriever):
         # 验证返回结果
         assert len(results) == 2
         assert all(isinstance(doc, Document) for doc in results)
+        
+        breakpoint()
