@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional, Union
 import openai
 from openai import AsyncOpenAI
-from src.models.embedding.base import BaseEmbedding
+from src.models.embeddings.base import BaseEmbedding
 
 class ArkEmbedding(BaseEmbedding):
     """Ark 嵌入模型实现类。

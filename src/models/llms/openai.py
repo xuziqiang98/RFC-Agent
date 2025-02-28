@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional, AsyncGenerator, List
 import json
 from openai import OpenAI, AsyncOpenAI
-from src.models.llm.base import BaseModel
+from src.models.llms.base import BaseModel
 
 class OpenAIModel(BaseModel):
     """OpenAI API 的模型实现类。

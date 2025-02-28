@@ -22,3 +22,6 @@ __MACOSX/
 
 # protocol implementations
 impls/
+
+# vector databases
+vector_stores/

@@ -1,9 +1,10 @@
 from typing import Optional
-from src.models.embedding.openai import OpenAIEmbedding
-from src.models.embedding.ark import ArkEmbedding
-from src.models.embedding.base import BaseEmbedding
+from src.models.llms.openai import OpenAIModel
+from src.models.llms.ollama import OllamaModel
+from src.models.llms.ark import ArkModel
+from src.models.llms.base import BaseModel
 
-class EmbeddingFactory:
+class LLMFactory:
     """LLM 模型工厂类，用于创建不同类型的语言模型实例。
     
     该类实现了工厂模式，集中管理所有 LLM 模型的创建逻辑。通过统一的接口创建
@@ -15,8 +16,9 @@ class EmbeddingFactory:
     """
     
     _models = {
-        "openai": OpenAIEmbedding,
-        "ark": ArkEmbedding
+        "openai": OpenAIModel,
+        "ollama": OllamaModel,
+        "ark": ArkModel
     }
     
     @classmethod
@@ -24,17 +26,17 @@ class EmbeddingFactory:
                model_type: str, 
                model_name: str, 
                api_base: str, 
-               api_key: Optional[str] = "") -> BaseEmbedding:
-        """创建指定类型的 Embedding 模型实例。
+               api_key: Optional[str] = "") -> BaseModel:
+        """创建指定类型的 LLM 模型实例。
 
         Args:
-            model_type: 模型类型，支持 'openai' 或 'ark'。
-            model_name: 模型名称。
+            model_type: 模型类型，支持 'openai' 或 'ollama'。
+            model_name: 模型名称，如 'gpt-3.5-turbo' 或 'deepseek-r1:32b'。
             api_base: API 基础 URL。
-            api_key: API 密钥，默认为空字符串。
+            api_key: API 密钥，仅 OpenAI 类型模型需要。默认为空字符串。
 
         Returns:
-            BaseEmbedding: 创建的模型实例。
+            BaseModel: 创建的模型实例。
 
         Raises:
             ValueError: 当指定的模型类型不受支持时抛出。
@@ -43,5 +45,7 @@ class EmbeddingFactory:
         if not model_class:
             raise ValueError(f"Unsupported model type: {model_type}")
             
-
+        if model_type == "ollama":
+            return model_class(model_name=model_name, api_base=api_base)
         return model_class(model_name=model_name, api_base=api_base, api_key=api_key)
+        
