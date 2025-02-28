@@ -24,7 +24,7 @@ class PathConfig(ConfigBase):
     scripts = root / 'scripts'
     tests = root / 'tests'
     logs = data / 'logs'
-    impls = root / 'impls'
+    impls = data / 'impls'
     contexts = src / 'contexts'
     prompts = src / 'prompts'
     models = src / 'models'
@@ -32,8 +32,8 @@ class PathConfig(ConfigBase):
     embeddings = models / 'embeddings'
     parsers = src / 'parsers'
     tools = src / 'tools'
-    rfcs = root / 'rfcs'
-    vector_stores = root / 'vector_stores'
+    rfcs = data / 'rfcs'
+    dbs = data / 'dbs'
 
     def __post_init__(self) -> None:
         for path in vars(self).values():
