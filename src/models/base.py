@@ -32,14 +32,14 @@ class BaseModel(ABC):
     async def generate(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
         """根据输入的提示生成响应。
         
         Args：
             prompt (str): 用户的输入提示
-            system (Optional[str]): 用于指导模型行为的系统消息
+            system (str): 用于指导模型行为的系统消息
             **kwargs: 额外的生成参数
             
         Returns：
@@ -51,14 +51,14 @@ class BaseModel(ABC):
     async def generate_stream(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """根据输入的提示生成流式响应。
         
         Args：
             prompt (str): 用户的输入提示
-            system (Optional[str]): 用于指导模型行为的系统消息
+            system (str): 用于指导模型行为的系统消息
             **kwargs: 额外的生成参数
             
         Yields：
@@ -69,13 +69,15 @@ class BaseModel(ABC):
     @abstractmethod
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
         """进行多轮对话并生成响应。
         
         Args：
-            messages: 对话历史消息列表，每条消息包含 'role' 和 'content' 字段
+            prompt (str): 用户的输入提示，与self._conversation_history拼接形成多轮对话的messages
+            system (str): 用于指导模型行为的系统消息
             **kwargs: 额外的生成参数
             
         Returns：
@@ -86,13 +88,15 @@ class BaseModel(ABC):
     @abstractmethod
     async def chat_stream(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """进行多轮对话并生成流式响应。
         
         Args：
-            messages: 对话历史消息列表，每条消息包含 'role' 和 'content' 字段
+            prompt (str): 用户的输入提示，与self._conversation_history拼接形成多轮对话的messages
+            system (str): 用于指导模型行为的系统消息
             **kwargs: 额外的生成参数
             
         Yields：

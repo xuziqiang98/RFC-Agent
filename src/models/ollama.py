@@ -34,7 +34,7 @@ class OllamaModel(BaseModel):
     async def generate(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
         """生成单轮回复。
@@ -65,7 +65,7 @@ class OllamaModel(BaseModel):
     async def generate_stream(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """以流式方式生成单轮回复。
@@ -96,17 +96,17 @@ class OllamaModel(BaseModel):
     
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
         """进行多轮对话。
         
-        使用完整的对话历史生成回复，支持上下文理解和多轮交互。每条消息都包含角色
-        和内容信息，用于构建对话上下文。
+        使用完整的对话历史生成回复，支持上下文理解和多轮交互。
         
         Args:
-            messages: 对话历史列表，每条消息包含 'role' 和 'content' 字段。
-                role 可以是 'system'、'user' 或 'assistant'。
+            prompt: 用户输入的提示文本。
+            system: 可选的系统提示，用于设置模型的行为规范。
             **kwargs: 传递给 API 的额外参数，如 temperature、top_p 等。
         
         Returns:
@@ -115,17 +115,35 @@ class OllamaModel(BaseModel):
         Raises:
             OllamaAPIError: 当 API 调用失败时抛出。
         """
+        # 消息列表为空时，添加系统提示
+        if not self._conversation_history:
+            self._conversation_history.append({"role": "system", "content": system})
+        
+        # 添加当前用户输入
+        user_message = {"role": "user", "content": prompt}
+        self._conversation_history.append(user_message)
+        
+        # 调用 API
         response = await self.client.chat(
             model=self.model_name,
-            messages=messages,
+            messages=self._conversation_history,
             stream=False,
             **kwargs
         )
+        
+        # 保存助手的回复到历史
+        assistant_message = {
+            "role": "assistant",
+            "content": response['message']['content']
+        }
+        self._conversation_history.append(assistant_message)
+        
         return response['message']['content']
     
     async def chat_stream(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """以流式方式进行多轮对话。
@@ -134,8 +152,8 @@ class OllamaModel(BaseModel):
         反馈的交互式对话场景。
         
         Args:
-            messages: 对话历史列表，每条消息包含 'role' 和 'content' 字段。
-                role 可以是 'system'、'user' 或 'assistant'。
+            prompt: 用户输入的提示文本。
+            system: 可选的系统提示，用于设置模型的行为规范。
             **kwargs: 传递给 API 的额外参数，如 temperature、top_p 等。
         
         Yields:
@@ -144,11 +162,32 @@ class OllamaModel(BaseModel):
         Raises:
             OllamaAPIError: 当 API 调用失败时抛出。
         """
+        # 消息列表为空时，添加系统提示
+        if not self._conversation_history:
+            self._conversation_history.append({"role": "system", "content": system})
+        
+        # 添加当前用户输入
+        user_message = {"role": "user", "content": prompt}
+        self._conversation_history.append(user_message)
+        
+        # 用于收集完整响应
+        full_response = []
+        
+        # 调用流式 API
         async for chunk in self.client.chat(
             model=self.model_name,
-            messages=messages,
+            messages=self._conversation_history,
             stream=True,
             **kwargs
         ):
             if 'message' in chunk and 'content' in chunk['message']:
-                yield chunk['message']['content']
+                content = chunk['message']['content']
+                full_response.append(content)
+                yield content
+        
+        # 保存完整回复到历史
+        assistant_message = {
+            "role": "assistant",
+            "content": "".join(full_response)
+        }
+        self._conversation_history.append(assistant_message)

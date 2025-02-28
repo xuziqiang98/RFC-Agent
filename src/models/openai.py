@@ -38,7 +38,7 @@ class OpenAIModel(BaseModel):
     async def generate(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
         """生成单轮回复。
@@ -58,8 +58,8 @@ class OpenAIModel(BaseModel):
             OpenAIError: 当 API 调用失败时抛出。
         """
         messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
+        
+        messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
         
         response = await self.client.chat.completions.create(
@@ -72,7 +72,7 @@ class OpenAIModel(BaseModel):
     async def generate_stream(
         self,
         prompt: str,
-        system: Optional[str] = None,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """以流式方式生成回复。
@@ -92,8 +92,8 @@ class OpenAIModel(BaseModel):
             OpenAIError: 当 API 调用失败时抛出。
         """
         messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
+            
+        messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
         
         stream = await self.client.chat.completions.create(
@@ -109,16 +109,38 @@ class OpenAIModel(BaseModel):
     
     async def chat(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> str:
-        """进行多轮对话。"""
-        # 更新对话历史
-        self._conversation_history.extend(messages)
+        """进行多轮对话。
         
+        使用对话历史记录生成上下文相关的回复。
+        
+        Args:
+            prompt: 用户输入的提示文本。
+            system: 系统提示，用于设置模型的行为规范。仅在首次对话时使用。
+            **kwargs: 传递给 API 的额外参数。
+        
+        Returns:
+            str: 模型生成的回复文本。
+        
+        Raises:
+            OpenAIError: API 调用失败时抛出。
+        """
+        
+        # 消息列表为空时，添加系统提示
+        if not self._conversation_history:
+            self._conversation_history.append({"role": "system", "content": system})
+        
+        # 添加当前用户输入
+        user_message = {"role": "user", "content": prompt}
+        self._conversation_history.append(user_message)
+        
+        # 调用 API
         response = await self.client.chat.completions.create(
             model=self.model_name,
-            messages=messages,
+            messages=self._conversation_history,
             **kwargs
         )
         
@@ -133,19 +155,41 @@ class OpenAIModel(BaseModel):
     
     async def chat_stream(
         self,
-        messages: List[Dict[str, str]],
+        prompt: str,
+        system: str = "",
         **kwargs: Dict[str, Any]
     ) -> AsyncGenerator[str, None]:
-        """以流式方式进行多轮对话。"""
-        # 更新对话历史
-        self._conversation_history.extend(messages)
+        """以流式方式进行多轮对话。
+        
+        使用对话历史记录流式生成上下文相关的回复。
+        
+        Args:
+            prompt: 用户输入的提示文本。
+            system: 系统提示，用于设置模型的行为规范。仅在首次对话时使用。
+            **kwargs: 传递给 API 的额外参数。
+        
+        Yields:
+            str: 生成的文本片段，每个片段都是完整回复的一部分。
+        
+        Raises:
+            OpenAIError: API 调用失败时抛出。
+        """
+        
+        # 消息列表为空时，添加系统提示
+        if not self._conversation_history:
+            self._conversation_history.append({"role": "system", "content": system})
+        
+        # 添加当前用户输入
+        user_message = {"role": "user", "content": prompt}
+        self._conversation_history.append(user_message)
         
         # 用于收集完整响应
         full_response = []
         
+        # 调用流式 API
         stream = await self.client.chat.completions.create(
             model=self.model_name,
-            messages=messages,
+            messages=self._conversation_history,
             stream=True,
             **kwargs
         )

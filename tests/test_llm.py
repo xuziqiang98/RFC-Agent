@@ -31,7 +31,8 @@ async def test_generate(model_instance):
     response = await model_instance.generate("hello")
     assert isinstance(response, str)
     assert len(response) > 0
-    breakpoint()
+    
+    # breakpoint()
 
 @pytest.mark.asyncio
 async def test_generate_stream(model_instance):
@@ -44,4 +45,5 @@ async def test_generate_stream(model_instance):
     # Combine all chunks and verify the result
     full_response = "".join(chunks)
     assert len(full_response) > 0
-    breakpoint()
+    
+    # breakpoint()

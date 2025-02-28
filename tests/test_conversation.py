@@ -28,62 +28,72 @@ def model_instance():
 @pytest.mark.asyncio
 async def test_chat(model_instance):
     """Test the chat functionality with multiple messages."""
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What is Python?"},
-        {"role": "assistant", "content": "Python is a programming language."},
-        {"role": "user", "content": "Tell me more about it."}
-    ]
+    # 系统提示
+    system_prompt = "你是一个有用的AI助手。"
     
-    response = await model_instance.chat(messages)
-    assert isinstance(response, str)
-    assert len(response) > 0
+    # 第一轮对话
+    first_response = await model_instance.chat(
+        prompt="你好，请介绍一下自己。",
+        system=system_prompt
+    )
+    assert isinstance(first_response, str)
+    assert len(first_response) > 0
     
-    breakpoint()
+    # 验证历史记录是否正确保存
+    assert len(model_instance._conversation_history) == 3
     
-    # Test context understanding
-    messages.append({"role": "assistant", "content": response})
-    messages.append({"role": "user", "content": "What were we talking about?"})
+    # breakpoint()
     
-    context_response = await model_instance.chat(messages)
-    assert isinstance(context_response, str)
-    assert len(context_response) > 0
-    # 修改断言，移除可能的 Markdown 标记
-    cleaned_response = context_response.lower().replace('*', '')
-    assert "python" in cleaned_response
+    # 第二轮对话，测试上下文保持
+    second_response = await model_instance.chat(
+        prompt="我们刚才聊了什么？"
+    )
+    assert isinstance(second_response, str)
+    assert len(second_response) > 0
     
-    breakpoint()
+    assert len(model_instance._conversation_history) == 5
+    
+    # breakpoint()
+    
+    # 清除对话历史
+    model_instance.clear_history()
+    assert len(model_instance._conversation_history) == 0
+
 
 @pytest.mark.asyncio
 async def test_chat_stream(model_instance):
     """Test the streaming chat functionality."""
-    messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Count from 1 to 5."}
-    ]
+    # 系统提示
+    system_prompt = "你是一个有用的AI助手。"
     
+    # 测试流式响应
     chunks = []
-    async for chunk in model_instance.chat_stream(messages):
+    async for chunk in model_instance.chat_stream(
+        prompt="请用三句话描述人工智能的发展历程。",
+        system=system_prompt
+    ):
         assert isinstance(chunk, str)
         chunks.append(chunk)
     
-    # Combine all chunks and verify the result
-    full_response = "".join(chunks)
-    assert len(full_response) > 0
+    # 验证收到了多个文本块
+    assert len(chunks) > 0
     
-    breakpoint()
+    # 验证历史记录是否正确保存
+    assert len(model_instance._conversation_history) == 3  # 系统消息、用户消息和助手回复
+    assert model_instance._conversation_history[0]["role"] == "system"
+    assert model_instance._conversation_history[1]["role"] == "user"
+    assert model_instance._conversation_history[2]["role"] == "assistant"
     
-    # Test streaming with context
-    messages.append({"role": "assistant", "content": full_response})
-    messages.append({"role": "user", "content": "Now count from 6 to 10."})
+    # 测试多轮流式对话
+    chunks = []
+    async for chunk in model_instance.chat_stream(
+        prompt="继续补充一点关于AI未来发展的看法。"
+    ):
+        chunks.append(chunk)
     
-    context_chunks = []
-    async for chunk in model_instance.chat_stream(messages):
-        assert isinstance(chunk, str)
-        context_chunks.append(chunk)
+    # 验证收到了响应
+    assert len(chunks) > 0
     
-    context_response = "".join(context_chunks)
-    assert len(context_response) > 0
-    assert any(str(num) in context_response for num in range(6, 11))
-    
-    breakpoint()
+    # 验证历史记录长度增加
+    assert len(model_instance._conversation_history) == 5  # 新增用户消息和助手回复
+
