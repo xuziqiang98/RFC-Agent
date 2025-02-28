@@ -2,10 +2,10 @@ import path_setup
 import os
 import pytest
 import asyncio
-from src.models.openai import OpenAIModel
-from src.models.ollama import OllamaModel
+from src.models.llm.openai import OpenAIModel
+from src.models.llm.ollama import OllamaModel
 from src.env import Env
-from src.models.factory import LLMFactory
+from src.models.llm.factory import LLMFactory
 
 @pytest.fixture
 def model_instance():
@@ -32,7 +32,7 @@ async def test_generate(model_instance):
     assert isinstance(response, str)
     assert len(response) > 0
     
-    # breakpoint()
+    breakpoint()
 
 @pytest.mark.asyncio
 async def test_generate_stream(model_instance):
@@ -46,4 +46,4 @@ async def test_generate_stream(model_instance):
     full_response = "".join(chunks)
     assert len(full_response) > 0
     
-    # breakpoint()
+    breakpoint()
