@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional, AsyncGenerator, List
 from ollama import AsyncClient
-from src.models.base import BaseModel
+from src.models.llm.base import BaseModel
 
 class OllamaModel(BaseModel):
     """Ollama API 的模型实现类。
