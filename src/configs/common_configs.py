@@ -28,9 +28,12 @@ class PathConfig(ConfigBase):
     contexts = src / 'contexts'
     prompts = src / 'prompts'
     models = src / 'models'
+    llms = models / 'llms'
+    embeddings = models / 'embeddings'
     parsers = src / 'parsers'
     tools = src / 'tools'
     rfcs = root / 'rfcs'
+    vector_stores = root / 'vector_stores'
 
     def __post_init__(self) -> None:
         for path in vars(self).values():

@@ -2,10 +2,10 @@ import path_setup
 import os
 import pytest
 import asyncio
-from src.models.llm.openai import OpenAIModel
-from src.models.llm.ollama import OllamaModel
+from src.models.llms.openai import OpenAIModel
+from src.models.llms.ollama import OllamaModel
 from src.env import Env
-from src.models.llm.factory import LLMFactory
+from src.models.llms.factory import LLMFactory
 
 @pytest.fixture
 def model_instance():

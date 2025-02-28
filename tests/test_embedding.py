@@ -3,10 +3,10 @@ import os
 import pytest
 import asyncio
 import numpy as np
-from src.models.embedding.openai import OpenAIEmbedding
-from src.models.embedding.ark import ArkEmbedding
+from src.models.embeddings.openai import OpenAIEmbedding
+from src.models.embeddings.ark import ArkEmbedding
 from src.env import Env
-from src.models.embedding.factory import EmbeddingFactory
+from src.models.embeddings.factory import EmbeddingFactory
 
 @pytest.fixture
 def model_instance():
@@ -31,6 +31,8 @@ async def test_embed_query(model_instance):
     """测试单个文本嵌入功能。"""
     text = "这是一个测试文本，用于生成嵌入向量。"
     embedding = await model_instance.embed_query(text)
+    
+    breakpoint()
     
     # 验证嵌入向量是否为列表类型
     assert isinstance(embedding, list)
